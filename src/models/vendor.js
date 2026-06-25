@@ -1,25 +1,40 @@
-'use strict';
-const {
-  Model
-} = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  class Vendor extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
-    static associate(models) {
-      // define association here
-    }
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/sequelize');
+
+const Vendor = sequelize.define(
+  'Vendor',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    nama: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: { msg: 'Nama vendor wajib diisi' },
+      },
+    },
+    no_telp: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: { msg: 'No. telepon wajib diisi' },
+      },
+    },
+    alamat: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: { msg: 'Alamat wajib diisi' },
+      },
+    },
+  },
+  {
+    tableName: 'Vendors',
+    timestamps: true,
   }
-  Vendor.init({
-    nama: DataTypes.STRING,
-    no_telp: DataTypes.STRING,
-    alamat: DataTypes.STRING
-  }, {
-    sequelize,
-    modelName: 'Vendor',
-  });
-  return Vendor;
-};
+);
+
+module.exports = Vendor;

@@ -1,5 +1,6 @@
 const sequelize = require('../config/sequelize');
 const User = require('./User');
+const Vendor = require('./Vendor');
 
 // Define associations here
 // User.hasMany(Post, { foreignKey: 'userId' });
@@ -8,4 +9,5 @@ const User = require('./User');
 module.exports = {
   sequelize,
   User,
+  Vendor,
 };
