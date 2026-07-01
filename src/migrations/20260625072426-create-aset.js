@@ -12,9 +12,6 @@ module.exports = {
       nama: {
         type: Sequelize.STRING,
       },
-      jenis_aset: {
-        type: Sequelize.STRING,
-      },
       status: {
         type: Sequelize.ENUM(
           "Sewa Berjalan",
