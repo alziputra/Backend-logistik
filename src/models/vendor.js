@@ -1,40 +1,45 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/sequelize');
+'use strict';
+const { Model } = require('sequelize');
 
-const Vendor = sequelize.define(
-  'Vendor',
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    nama: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: { msg: 'Nama vendor wajib diisi' },
-      },
-    },
-    no_telp: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: { msg: 'No. telepon wajib diisi' },
-      },
-    },
-    alamat: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: { msg: 'Alamat wajib diisi' },
-      },
-    },
-  },
-  {
-    tableName: 'Vendors',
-    timestamps: true,
+module.exports = (sequelize, DataTypes) => {
+  class Vendor extends Model {
+    static associate(models) {
+      Vendor.hasMany(models.Aset, {
+        foreignKey: 'vendorId',
+        as: 'asets',
+      });
+    }
   }
-);
-
-module.exports = Vendor;
+  Vendor.init(
+    {
+      nama: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: { msg: 'Nama vendor wajib diisi' },
+        },
+      },
+      no_telp: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: { msg: 'No. telepon wajib diisi' },
+        },
+      },
+      alamat: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: { msg: 'Alamat wajib diisi' },
+        },
+      },
+    },
+    {
+      sequelize,
+      modelName: 'Vendor',
+      tableName: 'Vendors',
+      timestamps: true,
+    }
+  );
+  return Vendor;
+};

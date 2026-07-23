@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
-const sequelize = require('./config/sequelize');
+const { sequelize } = require('./models');
 const routes = require('./routes');
 const { errorHandler, notFound } = require('./middlewares/error.middleware');
 
