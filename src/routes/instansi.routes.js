@@ -8,6 +8,7 @@ const {
   deleteInstansi,
 } = require('../controllers/instansi.controller');
 const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { validateRequest } = require('../middlewares/validate.middleware');
 
 const router = express.Router();
 
@@ -21,8 +22,8 @@ router.use(authenticate);
 
 router.get('/', getAllInstansi);
 router.get('/:id', getInstansiById);
-router.post('/', authorize('admin'), instansiValidation, createInstansi);
-router.put('/:id', authorize('admin'), instansiValidation, updateInstansi);
+router.post('/', authorize('admin'), instansiValidation, validateRequest, createInstansi);
+router.put('/:id', authorize('admin'), instansiValidation, validateRequest, updateInstansi);
 router.delete('/:id', authorize('admin'), deleteInstansi);
 
 module.exports = router;

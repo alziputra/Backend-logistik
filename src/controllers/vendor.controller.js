@@ -1,12 +1,13 @@
+const { Op } = require('sequelize');
 const { Vendor } = require('../models');
-const { validationResult } = require('express-validator');
+const { getPaginationParams } = require('../utils/helpers');
+const { sendSuccess, sendPaginated, sendNotFound } = require('../utils/response.util');
 
 // GET /api/vendors
 const getAllVendors = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
-    const offset = (page - 1) * limit;
-    const { Op } = require('sequelize');
+    const { page, limit, offset } = getPaginationParams(req.query);
+    const { search } = req.query;
 
     const where = {};
     if (search) {
@@ -15,23 +16,12 @@ const getAllVendors = async (req, res, next) => {
 
     const { count, rows } = await Vendor.findAndCountAll({
       where,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit,
+      offset,
       order: [['createdAt', 'DESC']],
     });
 
-    res.json({
-      success: true,
-      data: {
-        vendors: rows,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit),
-        },
-      },
-    });
+    return sendPaginated(res, 'vendors', rows, count, page, limit);
   } catch (error) {
     next(error);
   }
@@ -43,10 +33,10 @@ const getVendorById = async (req, res, next) => {
     const vendor = await Vendor.findByPk(req.params.id);
 
     if (!vendor) {
-      return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan' });
+      return sendNotFound(res, 'Vendor tidak ditemukan');
     }
 
-    res.json({ success: true, data: { vendor } });
+    return sendSuccess(res, { vendor });
   } catch (error) {
     next(error);
   }
@@ -55,20 +45,10 @@ const getVendorById = async (req, res, next) => {
 // POST /api/vendors
 const createVendor = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const { nama, no_telp, alamat } = req.body;
-
     const vendor = await Vendor.create({ nama, no_telp, alamat });
 
-    res.status(201).json({
-      success: true,
-      message: 'Vendor berhasil ditambahkan',
-      data: { vendor },
-    });
+    return sendSuccess(res, { vendor }, 'Vendor berhasil ditambahkan', 201);
   } catch (error) {
     next(error);
   }
@@ -77,24 +57,15 @@ const createVendor = async (req, res, next) => {
 // PUT /api/vendors/:id
 const updateVendor = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const vendor = await Vendor.findByPk(req.params.id);
     if (!vendor) {
-      return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan' });
+      return sendNotFound(res, 'Vendor tidak ditemukan');
     }
 
     const { nama, no_telp, alamat } = req.body;
     await vendor.update({ nama, no_telp, alamat });
 
-    res.json({
-      success: true,
-      message: 'Vendor berhasil diupdate',
-      data: { vendor },
-    });
+    return sendSuccess(res, { vendor }, 'Vendor berhasil diupdate');
   } catch (error) {
     next(error);
   }
@@ -105,12 +76,11 @@ const deleteVendor = async (req, res, next) => {
   try {
     const vendor = await Vendor.findByPk(req.params.id);
     if (!vendor) {
-      return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan' });
+      return sendNotFound(res, 'Vendor tidak ditemukan');
     }
 
     await vendor.destroy();
-
-    res.json({ success: true, message: 'Vendor berhasil dihapus' });
+    return sendSuccess(res, null, 'Vendor berhasil dihapus');
   } catch (error) {
     next(error);
   }

@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
 const { User } = require('../models');
+const { sendSuccess, sendError } = require('../utils/response.util');
 
 const generateToken = (userId, role) => {
   return jwt.sign({ id: userId, role }, process.env.JWT_SECRET, {
@@ -12,16 +12,11 @@ const generateToken = (userId, role) => {
 // POST /api/auth/register
 const register = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(409).json({ success: false, message: 'Email already registered' });
+      return sendError(res, 'Email already registered', 409);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -29,14 +24,15 @@ const register = async (req, res, next) => {
 
     const token = generateToken(user.id, user.role);
 
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful',
-      data: {
+    return sendSuccess(
+      res,
+      {
         user: { id: user.id, name: user.name, email: user.email, role: user.role },
         token,
       },
-    });
+      'Registration successful',
+      201
+    );
   } catch (error) {
     next(error);
   }
@@ -45,37 +41,32 @@ const register = async (req, res, next) => {
 // POST /api/auth/login
 const login = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const { email, password } = req.body;
 
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return sendError(res, 'Invalid credentials', 401);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return sendError(res, 'Invalid credentials', 401);
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ success: false, message: 'Account is deactivated' });
+      return sendError(res, 'Account is deactivated', 403);
     }
 
     const token = generateToken(user.id, user.role);
 
-    res.json({
-      success: true,
-      message: 'Login successful',
-      data: {
+    return sendSuccess(
+      res,
+      {
         user: { id: user.id, name: user.name, email: user.email, role: user.role },
         token,
       },
-    });
+      'Login successful'
+    );
   } catch (error) {
     next(error);
   }
@@ -83,10 +74,7 @@ const login = async (req, res, next) => {
 
 // GET /api/auth/me
 const getMe = async (req, res) => {
-  res.json({
-    success: true,
-    data: { user: req.user },
-  });
+  return sendSuccess(res, { user: req.user });
 };
 
 module.exports = { register, login, getMe };

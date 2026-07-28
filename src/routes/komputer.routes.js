@@ -8,6 +8,7 @@ const {
   deleteKomputer,
 } = require('../controllers/komputer.controller');
 const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { validateRequest } = require('../middlewares/validate.middleware');
 
 const router = express.Router();
 
@@ -21,8 +22,8 @@ router.use(authenticate);
 
 router.get('/', getAllKomputer);
 router.get('/:id', getKomputerById);
-router.post('/', authorize('admin'), komputerValidation, createKomputer);
-router.put('/:id', authorize('admin'), updateKomputer);
+router.post('/', authorize('admin'), komputerValidation, validateRequest, createKomputer);
+router.put('/:id', authorize('admin'), komputerValidation, validateRequest, updateKomputer);
 router.delete('/:id', authorize('admin'), deleteKomputer);
 
 module.exports = router;

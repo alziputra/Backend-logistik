@@ -1,23 +1,18 @@
-const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Aset, Vendor } = require('../models');
+const { pick, getPaginationParams } = require('../utils/helpers');
+const { sendSuccess, sendPaginated, sendNotFound, sendError } = require('../utils/response.util');
 
 const ASET_FIELDS = [
   'nama', 'status', 'stok', 'satuan', 'vendorId',
   'no_spk', 'no_pks', 'masa_sewa_bulan', 'tanggal_mulai', 'tanggal_selesai',
 ];
 
-const pick = (source, fields) =>
-  fields.reduce((acc, field) => {
-    if (source[field] !== undefined) acc[field] = source[field];
-    return acc;
-  }, {});
-
 // GET /api/asets
 const getAllAsets = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search, status, vendorId } = req.query;
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = getPaginationParams(req.query);
+    const { search, status, vendorId } = req.query;
 
     const where = {};
     if (search) where.nama = { [Op.iLike]: `%${search}%` };
@@ -27,23 +22,12 @@ const getAllAsets = async (req, res, next) => {
     const { count, rows } = await Aset.findAndCountAll({
       where,
       include: [{ model: Vendor, as: 'vendor', attributes: ['id', 'nama'] }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit,
+      offset,
       order: [['createdAt', 'DESC']],
     });
 
-    res.json({
-      success: true,
-      data: {
-        asets: rows,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit),
-        },
-      },
-    });
+    return sendPaginated(res, 'asets', rows, count, page, limit);
   } catch (error) {
     next(error);
   }
@@ -57,10 +41,10 @@ const getAsetById = async (req, res, next) => {
     });
 
     if (!aset) {
-      return res.status(404).json({ success: false, message: 'Aset tidak ditemukan' });
+      return sendNotFound(res, 'Aset tidak ditemukan');
     }
 
-    res.json({ success: true, data: { aset } });
+    return sendSuccess(res, { aset });
   } catch (error) {
     next(error);
   }
@@ -69,19 +53,14 @@ const getAsetById = async (req, res, next) => {
 // POST /api/asets
 const createAset = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const vendor = await Vendor.findByPk(req.body.vendorId);
     if (!vendor) {
-      return res.status(400).json({ success: false, message: 'Vendor tidak ditemukan' });
+      return sendError(res, 'Vendor tidak ditemukan', 400);
     }
 
     const aset = await Aset.create(pick(req.body, ASET_FIELDS));
 
-    res.status(201).json({ success: true, message: 'Aset berhasil ditambahkan', data: { aset } });
+    return sendSuccess(res, { aset }, 'Aset berhasil ditambahkan', 201);
   } catch (error) {
     next(error);
   }
@@ -90,26 +69,21 @@ const createAset = async (req, res, next) => {
 // PUT /api/asets/:id
 const updateAset = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const aset = await Aset.findByPk(req.params.id);
     if (!aset) {
-      return res.status(404).json({ success: false, message: 'Aset tidak ditemukan' });
+      return sendNotFound(res, 'Aset tidak ditemukan');
     }
 
     if (req.body.vendorId) {
       const vendor = await Vendor.findByPk(req.body.vendorId);
       if (!vendor) {
-        return res.status(400).json({ success: false, message: 'Vendor tidak ditemukan' });
+        return sendError(res, 'Vendor tidak ditemukan', 400);
       }
     }
 
     await aset.update(pick(req.body, ASET_FIELDS));
 
-    res.json({ success: true, message: 'Aset berhasil diupdate', data: { aset } });
+    return sendSuccess(res, { aset }, 'Aset berhasil diupdate');
   } catch (error) {
     next(error);
   }
@@ -120,11 +94,11 @@ const deleteAset = async (req, res, next) => {
   try {
     const aset = await Aset.findByPk(req.params.id);
     if (!aset) {
-      return res.status(404).json({ success: false, message: 'Aset tidak ditemukan' });
+      return sendNotFound(res, 'Aset tidak ditemukan');
     }
 
     await aset.destroy();
-    res.json({ success: true, message: 'Aset berhasil dihapus' });
+    return sendSuccess(res, null, 'Aset berhasil dihapus');
   } catch (error) {
     next(error);
   }

@@ -1,7 +1,8 @@
 const crypto = require('crypto');
-const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Transaksi, TransaksiItem, sequelize } = require('../models');
+const { pick, getPaginationParams } = require('../utils/helpers');
+const { sendSuccess, sendPaginated, sendNotFound } = require('../utils/response.util');
 
 const TRANSAKSI_FIELDS = [
   'jenisTransaksi', 'lokasi', 'nomorSurat', 'tanggal',
@@ -12,17 +13,11 @@ const TRANSAKSI_FIELDS = [
 
 const ITEM_FIELDS = ['nama', 'keterangan', 'kuantitas', 'satuan', 'sn', 'outlet'];
 
-const pick = (source, fields) =>
-  fields.reduce((acc, field) => {
-    if (source[field] !== undefined) acc[field] = source[field];
-    return acc;
-  }, {});
-
 // GET /api/transaksi
 const getAllTransaksi = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, jenisTransaksi, search } = req.query;
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = getPaginationParams(req.query);
+    const { jenisTransaksi, search } = req.query;
 
     const where = {};
     if (jenisTransaksi) where.jenisTransaksi = jenisTransaksi;
@@ -31,23 +26,12 @@ const getAllTransaksi = async (req, res, next) => {
     const { count, rows } = await Transaksi.findAndCountAll({
       where,
       include: [{ model: TransaksiItem, as: 'items' }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit,
+      offset,
       order: [['createdAt', 'DESC']],
     });
 
-    res.json({
-      success: true,
-      data: {
-        transaksi: rows,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit),
-        },
-      },
-    });
+    return sendPaginated(res, 'transaksi', rows, count, page, limit);
   } catch (error) {
     next(error);
   }
@@ -61,24 +45,18 @@ const getTransaksiById = async (req, res, next) => {
     });
 
     if (!transaksi) {
-      return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan' });
+      return sendNotFound(res, 'Transaksi tidak ditemukan');
     }
 
-    res.json({ success: true, data: { transaksi } });
+    return sendSuccess(res, { transaksi });
   } catch (error) {
     next(error);
   }
 };
 
 // POST /api/transaksi
-// Body: { ...transaksi fields, items: [{ nama, keterangan, kuantitas, satuan, sn, outlet }, ...] }
 const createTransaksi = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const { items = [] } = req.body;
 
     const result = await sequelize.transaction(async (t) => {
@@ -104,19 +82,18 @@ const createTransaksi = async (req, res, next) => {
       });
     });
 
-    res.status(201).json({ success: true, message: 'Transaksi berhasil ditambahkan', data: { transaksi: result } });
+    return sendSuccess(res, { transaksi: result }, 'Transaksi berhasil ditambahkan', 201);
   } catch (error) {
     next(error);
   }
 };
 
 // PUT /api/transaksi/:id
-// Updates the transaksi header. If `items` is provided, it fully replaces the existing items.
 const updateTransaksi = async (req, res, next) => {
   try {
     const transaksi = await Transaksi.findByPk(req.params.id);
     if (!transaksi) {
-      return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan' });
+      return sendNotFound(res, 'Transaksi tidak ditemukan');
     }
 
     const { items } = req.body;
@@ -144,7 +121,7 @@ const updateTransaksi = async (req, res, next) => {
       });
     });
 
-    res.json({ success: true, message: 'Transaksi berhasil diupdate', data: { transaksi: result } });
+    return sendSuccess(res, { transaksi: result }, 'Transaksi berhasil diupdate');
   } catch (error) {
     next(error);
   }
@@ -155,12 +132,11 @@ const deleteTransaksi = async (req, res, next) => {
   try {
     const transaksi = await Transaksi.findByPk(req.params.id);
     if (!transaksi) {
-      return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan' });
+      return sendNotFound(res, 'Transaksi tidak ditemukan');
     }
 
-    // Items are removed automatically via ON DELETE CASCADE (see migration).
     await transaksi.destroy();
-    res.json({ success: true, message: 'Transaksi berhasil dihapus' });
+    return sendSuccess(res, null, 'Transaksi berhasil dihapus');
   } catch (error) {
     next(error);
   }

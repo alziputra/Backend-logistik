@@ -8,6 +8,7 @@ const {
   deleteVendor,
 } = require('../controllers/vendor.controller');
 const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { validateRequest } = require('../middlewares/validate.middleware');
 
 const router = express.Router();
 
@@ -22,8 +23,8 @@ router.use(authenticate);
 
 router.get('/', getAllVendors);
 router.get('/:id', getVendorById);
-router.post('/', authorize('admin'), vendorValidation, createVendor);
-router.put('/:id', authorize('admin'), vendorValidation, updateVendor);
+router.post('/', authorize('admin'), vendorValidation, validateRequest, createVendor);
+router.put('/:id', authorize('admin'), vendorValidation, validateRequest, updateVendor);
 router.delete('/:id', authorize('admin'), deleteVendor);
 
 module.exports = router;

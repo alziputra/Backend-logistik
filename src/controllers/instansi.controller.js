@@ -1,41 +1,27 @@
-const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Instansi } = require('../models');
+const { pick, getPaginationParams } = require('../utils/helpers');
+const { sendSuccess, sendPaginated, sendNotFound } = require('../utils/response.util');
 
-const pick = (source, fields) =>
-  fields.reduce((acc, field) => {
-    if (source[field] !== undefined) acc[field] = source[field];
-    return acc;
-  }, {});
+const INSTANSI_FIELDS = ['kode', 'nama'];
 
 // GET /api/instansi
 const getAllInstansi = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = getPaginationParams(req.query);
+    const { search } = req.query;
 
     const where = {};
     if (search) where.nama = { [Op.iLike]: `%${search}%` };
 
     const { count, rows } = await Instansi.findAndCountAll({
       where,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit,
+      offset,
       order: [['createdAt', 'DESC']],
     });
 
-    res.json({
-      success: true,
-      data: {
-        instansi: rows,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit),
-        },
-      },
-    });
+    return sendPaginated(res, 'instansi', rows, count, page, limit);
   } catch (error) {
     next(error);
   }
@@ -46,9 +32,9 @@ const getInstansiById = async (req, res, next) => {
   try {
     const instansi = await Instansi.findByPk(req.params.id);
     if (!instansi) {
-      return res.status(404).json({ success: false, message: 'Instansi tidak ditemukan' });
+      return sendNotFound(res, 'Instansi tidak ditemukan');
     }
-    res.json({ success: true, data: { instansi } });
+    return sendSuccess(res, { instansi });
   } catch (error) {
     next(error);
   }
@@ -57,14 +43,8 @@ const getInstansiById = async (req, res, next) => {
 // POST /api/instansi
 const createInstansi = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
-    const instansi = await Instansi.create(pick(req.body, ['kode', 'nama']));
-
-    res.status(201).json({ success: true, message: 'Instansi berhasil ditambahkan', data: { instansi } });
+    const instansi = await Instansi.create(pick(req.body, INSTANSI_FIELDS));
+    return sendSuccess(res, { instansi }, 'Instansi berhasil ditambahkan', 201);
   } catch (error) {
     next(error);
   }
@@ -73,19 +53,13 @@ const createInstansi = async (req, res, next) => {
 // PUT /api/instansi/:id
 const updateInstansi = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
     const instansi = await Instansi.findByPk(req.params.id);
     if (!instansi) {
-      return res.status(404).json({ success: false, message: 'Instansi tidak ditemukan' });
+      return sendNotFound(res, 'Instansi tidak ditemukan');
     }
 
-    await instansi.update(pick(req.body, ['kode', 'nama']));
-
-    res.json({ success: true, message: 'Instansi berhasil diupdate', data: { instansi } });
+    await instansi.update(pick(req.body, INSTANSI_FIELDS));
+    return sendSuccess(res, { instansi }, 'Instansi berhasil diupdate');
   } catch (error) {
     next(error);
   }
@@ -96,11 +70,11 @@ const deleteInstansi = async (req, res, next) => {
   try {
     const instansi = await Instansi.findByPk(req.params.id);
     if (!instansi) {
-      return res.status(404).json({ success: false, message: 'Instansi tidak ditemukan' });
+      return sendNotFound(res, 'Instansi tidak ditemukan');
     }
 
     await instansi.destroy();
-    res.json({ success: true, message: 'Instansi berhasil dihapus' });
+    return sendSuccess(res, null, 'Instansi berhasil dihapus');
   } catch (error) {
     next(error);
   }

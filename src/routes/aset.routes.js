@@ -8,6 +8,7 @@ const {
   deleteAset,
 } = require('../controllers/aset.controller');
 const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { validateRequest } = require('../middlewares/validate.middleware');
 
 const router = express.Router();
 
@@ -25,8 +26,8 @@ router.use(authenticate);
 
 router.get('/', getAllAsets);
 router.get('/:id', getAsetById);
-router.post('/', authorize('admin'), asetValidation, createAset);
-router.put('/:id', authorize('admin'), updateAset);
+router.post('/', authorize('admin'), asetValidation, validateRequest, createAset);
+router.put('/:id', authorize('admin'), asetValidation, validateRequest, updateAset);
 router.delete('/:id', authorize('admin'), deleteAset);
 
 module.exports = router;

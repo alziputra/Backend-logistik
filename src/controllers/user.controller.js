@@ -1,10 +1,12 @@
 const { User } = require('../models');
+const { getPaginationParams } = require('../utils/helpers');
+const { sendSuccess, sendPaginated, sendNotFound } = require('../utils/response.util');
 
 // GET /api/users
 const getAllUsers = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, role } = req.query;
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = getPaginationParams(req.query);
+    const { role } = req.query;
 
     const where = {};
     if (role) where.role = role;
@@ -12,23 +14,12 @@ const getAllUsers = async (req, res, next) => {
     const { count, rows } = await User.findAndCountAll({
       where,
       attributes: { exclude: ['password'] },
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit,
+      offset,
       order: [['createdAt', 'DESC']],
     });
 
-    res.json({
-      success: true,
-      data: {
-        users: rows,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit),
-        },
-      },
-    });
+    return sendPaginated(res, 'users', rows, count, page, limit);
   } catch (error) {
     next(error);
   }
@@ -42,10 +33,10 @@ const getUserById = async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return sendNotFound(res, 'User not found');
     }
 
-    res.json({ success: true, data: { user } });
+    return sendSuccess(res, { user });
   } catch (error) {
     next(error);
   }
@@ -57,19 +48,17 @@ const updateUser = async (req, res, next) => {
     const user = await User.findByPk(req.params.id);
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return sendNotFound(res, 'User not found');
     }
 
     const { name, isActive } = req.body;
     await user.update({ name, isActive });
 
-    res.json({
-      success: true,
-      message: 'User updated successfully',
-      data: {
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, isActive: user.isActive },
-      },
-    });
+    return sendSuccess(
+      res,
+      { user: { id: user.id, name: user.name, email: user.email, role: user.role, isActive: user.isActive } },
+      'User updated successfully'
+    );
   } catch (error) {
     next(error);
   }
@@ -81,11 +70,11 @@ const deleteUser = async (req, res, next) => {
     const user = await User.findByPk(req.params.id);
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return sendNotFound(res, 'User not found');
     }
 
     await user.destroy();
-    res.json({ success: true, message: 'User deleted successfully' });
+    return sendSuccess(res, null, 'User deleted successfully');
   } catch (error) {
     next(error);
   }

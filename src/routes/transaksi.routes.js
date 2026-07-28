@@ -8,6 +8,7 @@ const {
   deleteTransaksi,
 } = require('../controllers/transaksi.controller');
 const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { validateRequest } = require('../middlewares/validate.middleware');
 
 const router = express.Router();
 
@@ -23,8 +24,8 @@ router.use(authenticate);
 
 router.get('/', getAllTransaksi);
 router.get('/:id', getTransaksiById);
-router.post('/', authorize('admin'), transaksiValidation, createTransaksi);
-router.put('/:id', authorize('admin'), updateTransaksi);
+router.post('/', authorize('admin'), transaksiValidation, validateRequest, createTransaksi);
+router.put('/:id', authorize('admin'), transaksiValidation, validateRequest, updateTransaksi);
 router.delete('/:id', authorize('admin'), deleteTransaksi);
 
 module.exports = router;
