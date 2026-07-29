@@ -31,6 +31,13 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✅ Database connected successfully');
 
+    // Relax vendorId NOT NULL constraint if needed
+    try {
+      await sequelize.query('ALTER TABLE "Asets" ALTER COLUMN "vendorId" DROP NOT NULL;');
+    } catch {
+      // Ignore if table does not exist or column is already nullable
+    }
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📦 Environment: ${process.env.NODE_ENV}`);

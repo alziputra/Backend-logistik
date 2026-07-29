@@ -14,11 +14,8 @@ const router = express.Router();
 
 const asetValidation = [
   body('nama').trim().notEmpty().withMessage('Nama aset wajib diisi'),
-  body('vendorId').notEmpty().withMessage('Vendor wajib diisi').isInt().withMessage('Vendor tidak valid'),
-  body('status')
-    .optional()
-    .isIn(['Sewa Berjalan', 'Sewa Selesai', 'Sewa Dibatalkan'])
-    .withMessage('Status tidak valid'),
+  body('vendorId').optional({ nullable: true }),
+  body('status').optional(),
 ];
 
 // Semua route butuh autentikasi

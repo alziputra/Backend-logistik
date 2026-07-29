@@ -8,6 +8,8 @@ const ASET_FIELDS = [
   'no_spk', 'no_pks', 'masa_sewa_bulan', 'tanggal_mulai', 'tanggal_selesai',
 ];
 
+const ALLOWED_STATUSES = ['Sewa Berjalan', 'Sewa Selesai', 'Sewa Dibatalkan'];
+
 // GET /api/asets
 const getAllAsets = async (req, res, next) => {
   try {
@@ -53,15 +55,36 @@ const getAsetById = async (req, res, next) => {
 // POST /api/asets
 const createAset = async (req, res, next) => {
   try {
-    const vendor = await Vendor.findByPk(req.body.vendorId);
-    if (!vendor) {
-      return sendError(res, 'Vendor tidak ditemukan', 400);
+    let validVendorId = null;
+    if (req.body.vendorId && !isNaN(Number(req.body.vendorId))) {
+      const vendor = await Vendor.findByPk(req.body.vendorId);
+      if (vendor) {
+        validVendorId = vendor.id;
+      }
     }
 
-    const aset = await Aset.create(pick(req.body, ASET_FIELDS));
+    if (!validVendorId) {
+      const vendorName = (req.body.vendor_nama || "-").trim() || "-";
+      const [v] = await Vendor.findOrCreate({
+        where: { nama: vendorName },
+        defaults: { no_telp: "-", alamat: "-" }
+      });
+      validVendorId = v.id;
+    }
+
+    const payload = pick(req.body, ASET_FIELDS);
+    payload.vendorId = validVendorId;
+    if (!payload.tanggal_mulai) payload.tanggal_mulai = null;
+    if (!payload.tanggal_selesai) payload.tanggal_selesai = null;
+    if (!ALLOWED_STATUSES.includes(payload.status)) {
+      payload.status = 'Sewa Berjalan';
+    }
+
+    const aset = await Aset.create(payload);
 
     return sendSuccess(res, { aset }, 'Aset berhasil ditambahkan', 201);
   } catch (error) {
+    console.error('CREATE ASET ERROR:', error);
     next(error);
   }
 };
@@ -74,17 +97,36 @@ const updateAset = async (req, res, next) => {
       return sendNotFound(res, 'Aset tidak ditemukan');
     }
 
-    if (req.body.vendorId) {
+    let validVendorId = null;
+    if (req.body.vendorId && !isNaN(Number(req.body.vendorId))) {
       const vendor = await Vendor.findByPk(req.body.vendorId);
-      if (!vendor) {
-        return sendError(res, 'Vendor tidak ditemukan', 400);
+      if (vendor) {
+        validVendorId = vendor.id;
       }
     }
 
-    await aset.update(pick(req.body, ASET_FIELDS));
+    if (!validVendorId) {
+      const vendorName = (req.body.vendor_nama || "-").trim() || "-";
+      const [v] = await Vendor.findOrCreate({
+        where: { nama: vendorName },
+        defaults: { no_telp: "-", alamat: "-" }
+      });
+      validVendorId = v.id;
+    }
+
+    const payload = pick(req.body, ASET_FIELDS);
+    payload.vendorId = validVendorId;
+    if (!payload.tanggal_mulai) payload.tanggal_mulai = null;
+    if (!payload.tanggal_selesai) payload.tanggal_selesai = null;
+    if (!ALLOWED_STATUSES.includes(payload.status)) {
+      payload.status = 'Sewa Berjalan';
+    }
+
+    await aset.update(payload);
 
     return sendSuccess(res, { aset }, 'Aset berhasil diupdate');
   } catch (error) {
+    console.error('UPDATE ASET ERROR:', error);
     next(error);
   }
 };

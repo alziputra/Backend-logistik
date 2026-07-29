@@ -13,11 +13,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       nama: DataTypes.STRING,
       status: {
-        type: DataTypes.ENUM(
-          "Sewa Berjalan",
-          "Sewa Selesai",
-          "Sewa Dibatalkan",
-        ),
+        type: DataTypes.ENUM("Sewa Berjalan", "Sewa Selesai", "Sewa Dibatalkan"),
         allowNull: false,
         defaultValue: "Sewa Berjalan",
       },
