@@ -6,10 +6,18 @@ const bcrypt = require('bcryptjs');
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const existingUsers = await queryInterface.sequelize.query(
+      `SELECT email FROM "users" WHERE email IN ('admin@gmail.com', 'user@gmail.com')`,
+      { type: queryInterface.sequelize.QueryTypes.SELECT }
+    );
+
+    const existingEmails = existingUsers.map((u) => u.email);
+    const usersToInsert = [];
+
     const hashedPassword = await bcrypt.hash('password123', 10);
 
-    await queryInterface.bulkInsert('users', [
-      {
+    if (!existingEmails.includes('admin@gmail.com')) {
+      usersToInsert.push({
         id: crypto.randomUUID(),
         name: 'Admin User',
         email: 'admin@gmail.com',
@@ -18,8 +26,11 @@ module.exports = {
         is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
-      },
-      {
+      });
+    }
+
+    if (!existingEmails.includes('user@gmail.com')) {
+      usersToInsert.push({
         id: crypto.randomUUID(),
         name: 'Regular User',
         email: 'user@gmail.com',
@@ -28,8 +39,12 @@ module.exports = {
         is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
-      },
-    ]);
+      });
+    }
+
+    if (usersToInsert.length > 0) {
+      await queryInterface.bulkInsert('users', usersToInsert);
+    }
   },
 
   async down(queryInterface, Sequelize) {

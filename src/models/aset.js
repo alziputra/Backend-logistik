@@ -13,9 +13,9 @@ module.exports = (sequelize, DataTypes) => {
     {
       nama: DataTypes.STRING,
       status: {
-        type: DataTypes.ENUM("Sewa Berjalan", "Sewa Selesai", "Sewa Dibatalkan"),
+        type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: "Sewa Berjalan",
+        defaultValue: "Inventaris",
       },
       stok: DataTypes.INTEGER,
       satuan: DataTypes.STRING,

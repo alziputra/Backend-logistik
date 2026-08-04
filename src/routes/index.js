@@ -7,6 +7,13 @@ const instansiRoutes = require('./instansi.routes');
 const komputerRoutes = require('./komputer.routes');
 const printerRoutes = require('./printer.routes');
 const transaksiRoutes = require('./transaksi.routes');
+const asetTanahRoutes = require('./asetTanah.routes');
+const menuSewaRoutes = require('./menuSewa.routes');
+const renovasiRoutes = require('./renovasi.routes');
+const pengamananKorporasiRoutes = require('./pengamananKorporasi.routes');
+const spkHistoryRoutes = require('./spkHistory.routes');
+const soppHistoryRoutes = require('./soppHistory.routes');
+const activityLogRoutes = require('./activityLog.routes');
 
 const router = express.Router();
 
@@ -22,5 +29,12 @@ router.use('/instansi', instansiRoutes);
 router.use('/komputer', komputerRoutes);
 router.use('/printer', printerRoutes);
 router.use('/transaksi', transaksiRoutes);
+router.use('/aset-tanah', asetTanahRoutes);
+router.use('/menu-sewa', menuSewaRoutes);
+router.use('/renovasi', renovasiRoutes);
+router.use('/pengamanan-korporasi', pengamananKorporasiRoutes);
+router.use('/spk-histories', spkHistoryRoutes);
+router.use('/sopp-histories', soppHistoryRoutes);
+router.use('/activity-logs', activityLogRoutes);
 
 module.exports = router;
