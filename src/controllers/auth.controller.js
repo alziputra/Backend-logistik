@@ -62,7 +62,7 @@ const login = async (req, res, next) => {
     return sendSuccess(
       res,
       {
-        user: { id: user.id, name: user.name, email: user.email, role: user.role },
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, isActive: user.isActive },
         token,
       },
       'Login successful'
@@ -73,8 +73,54 @@ const login = async (req, res, next) => {
 };
 
 // GET /api/auth/me
-const getMe = async (req, res) => {
-  return sendSuccess(res, { user: req.user });
+const getMe = async (req, res, next) => {
+  try {
+    const dbUser = await User.findByPk(req.user.id, {
+      attributes: ['id', 'name', 'email', 'role', 'isActive', 'createdAt']
+    });
+
+    if (!dbUser) {
+      return sendError(res, 'User tidak ditemukan', 404);
+    }
+
+    return sendSuccess(res, {
+      user: {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        role: dbUser.role,
+        isActive: dbUser.isActive,
+        createdAt: dbUser.createdAt,
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-module.exports = { register, login, getMe };
+// POST /api/auth/change-password
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      return sendError(res, 'User tidak ditemukan', 404);
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return sendError(res, 'Password saat ini salah', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    return sendSuccess(res, null, 'Password berhasil diperbarui');
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, getMe, changePassword };

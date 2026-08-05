@@ -1,6 +1,6 @@
 const express = require('express');
 const { body } = require('express-validator');
-const { register, login, getMe } = require('../controllers/auth.controller');
+const { register, login, getMe, changePassword } = require('../controllers/auth.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
 const { validateRequest } = require('../middlewares/validate.middleware');
 
@@ -28,5 +28,16 @@ router.post(
 );
 
 router.get('/me', authenticate, getMe);
+
+router.post(
+  '/change-password',
+  authenticate,
+  [
+    body('currentPassword').notEmpty().withMessage('Password saat ini wajib diisi'),
+    body('newPassword').isLength({ min: 6 }).withMessage('Password baru minimal 6 karakter'),
+  ],
+  validateRequest,
+  changePassword
+);
 
 module.exports = router;
