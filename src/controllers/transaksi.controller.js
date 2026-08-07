@@ -57,7 +57,19 @@ const getTransaksiById = async (req, res, next) => {
 // POST /api/transaksi
 const createTransaksi = async (req, res, next) => {
   try {
-    const { items = [] } = req.body;
+    const { items = [], nomorSurat } = req.body;
+
+    if (nomorSurat) {
+      const existing = await Transaksi.findOne({
+        where: { nomorSurat: nomorSurat.trim() }
+      });
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Nomor Surat "${nomorSurat}" sudah terdaftar dalam sistem!`
+        });
+      }
+    }
 
     const result = await sequelize.transaction(async (t) => {
       const transaksi = await Transaksi.create(
@@ -91,23 +103,40 @@ const createTransaksi = async (req, res, next) => {
 // PUT /api/transaksi/:id
 const updateTransaksi = async (req, res, next) => {
   try {
-    const transaksi = await Transaksi.findByPk(req.params.id);
+    const { items, nomorSurat } = req.body;
+    const { id } = req.params;
+
+    const transaksi = await Transaksi.findByPk(id);
     if (!transaksi) {
       return sendNotFound(res, 'Transaksi tidak ditemukan');
     }
 
-    const { items } = req.body;
+    if (nomorSurat) {
+      const existing = await Transaksi.findOne({
+        where: {
+          nomorSurat: nomorSurat.trim(),
+          id: { [Op.ne]: id }
+        }
+      });
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Nomor Surat "${nomorSurat}" sudah terdaftar pada transaksi lain!`
+        });
+      }
+    }
 
     const result = await sequelize.transaction(async (t) => {
       await transaksi.update(pick(req.body, TRANSAKSI_FIELDS), { transaction: t });
 
       if (Array.isArray(items)) {
-        await TransaksiItem.destroy({ where: { transaksiId: transaksi.id }, transaction: t });
+        await TransaksiItem.destroy({ where: { transaksiId: id }, transaction: t });
+
         if (items.length > 0) {
           await TransaksiItem.bulkCreate(
             items.map((item) => ({
               id: crypto.randomUUID(),
-              transaksiId: transaksi.id,
+              transaksiId: id,
               ...pick(item, ITEM_FIELDS),
             })),
             { transaction: t }
@@ -115,13 +144,13 @@ const updateTransaksi = async (req, res, next) => {
         }
       }
 
-      return Transaksi.findByPk(transaksi.id, {
+      return Transaksi.findByPk(id, {
         include: [{ model: TransaksiItem, as: 'items' }],
         transaction: t,
       });
     });
 
-    return sendSuccess(res, { transaksi: result }, 'Transaksi berhasil diupdate');
+    return sendSuccess(res, { transaksi: result }, 'Transaksi berhasil diperbarui');
   } catch (error) {
     next(error);
   }
@@ -135,11 +164,21 @@ const deleteTransaksi = async (req, res, next) => {
       return sendNotFound(res, 'Transaksi tidak ditemukan');
     }
 
-    await transaksi.destroy();
+    await sequelize.transaction(async (t) => {
+      await TransaksiItem.destroy({ where: { transaksiId: req.params.id }, transaction: t });
+      await transaksi.destroy({ transaction: t });
+    });
+
     return sendSuccess(res, null, 'Transaksi berhasil dihapus');
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { getAllTransaksi, getTransaksiById, createTransaksi, updateTransaksi, deleteTransaksi };
+module.exports = {
+  getAllTransaksi,
+  getTransaksiById,
+  createTransaksi,
+  updateTransaksi,
+  deleteTransaksi,
+};

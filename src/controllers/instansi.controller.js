@@ -3,7 +3,7 @@ const { Instansi } = require('../models');
 const { pick, getPaginationParams } = require('../utils/helpers');
 const { sendSuccess, sendPaginated, sendNotFound } = require('../utils/response.util');
 
-const INSTANSI_FIELDS = ['kode', 'nama'];
+const INSTANSI_FIELDS = ['kode', 'nama', 'status', 'kodeCabang', 'cabangInduk', 'clustering', 'jenis', 'area'];
 
 // GET /api/instansi
 const getAllInstansi = async (req, res, next) => {
@@ -12,13 +12,20 @@ const getAllInstansi = async (req, res, next) => {
     const { search } = req.query;
 
     const where = {};
-    if (search) where.nama = { [Op.iLike]: `%${search}%` };
+    if (search) {
+      where[Op.or] = [
+        { nama: { [Op.iLike]: `%${search}%` } },
+        { kode: { [Op.iLike]: `%${search}%` } },
+        { kodeCabang: { [Op.iLike]: `%${search}%` } },
+        { cabangInduk: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
 
     const { count, rows } = await Instansi.findAndCountAll({
       where,
       limit,
       offset,
-      order: [['createdAt', 'DESC']],
+      order: [['createdAt', 'ASC']],
     });
 
     return sendPaginated(res, 'instansi', rows, count, page, limit);
