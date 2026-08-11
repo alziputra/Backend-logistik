@@ -45,11 +45,11 @@ module.exports = {
   },
   production: {
     ...commonConfig,
-    username: process.env.DB_USER || 'postgres',
+    username: process.env.DB_USER || 'postgres.ryjbcppcjmiznlbbrazl',
     password: process.env.DB_PASSWORD || 'NEZbny0yfTkBOAqc',
     database: process.env.DB_NAME || 'postgres',
-    host: process.env.DB_HOST || 'db.ryjbcppcjmiznlbbrazl.supabase.co',
-    port: parseInt(process.env.DB_PORT) || 5432,
+    host: process.env.DB_HOST || 'aws-0-ap-southeast-1.pooler.supabase.com',
+    port: parseInt(process.env.DB_PORT) || 6543,
     logging: false,
   },
 };
