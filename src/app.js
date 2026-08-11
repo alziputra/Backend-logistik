@@ -23,6 +23,7 @@ app.get('/', (req, res) => {
   res.json({ success: true, message: 'Backend Logistik API is running' });
 });
 app.use('/api', routes);
+app.use('/', routes);
 
 // 404 & Error handlers
 app.use(notFound);
