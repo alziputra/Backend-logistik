@@ -18,7 +18,10 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// API Routes
+// Root & API Routes
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Backend Logistik API is running' });
+});
 app.use('/api', routes);
 
 // 404 & Error handlers

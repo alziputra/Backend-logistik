@@ -43,7 +43,4 @@ Object.keys(db).forEach((modelName) => {
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-// Ensure PostgreSQL ENUM type includes 'Inventaris'
-sequelize.query(`ALTER TYPE "enum_Asets_status" ADD VALUE IF NOT EXISTS 'Inventaris';`).catch(() => {});
-
 module.exports = db;
