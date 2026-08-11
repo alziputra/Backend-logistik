@@ -1,10 +1,12 @@
 require('dotenv').config();
+const pg = require('pg');
 
 const getDatabaseConfig = () => {
   const dbUrlEnv = process.env.DATABASE_URL ? 'DATABASE_URL' : (process.env.POSTGRES_URL ? 'POSTGRES_URL' : null);
 
   const commonConfig = {
     dialect: 'postgres',
+    dialectModule: pg,
     dialectOptions: {
       ssl: {
         require: true,
